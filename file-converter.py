@@ -13,7 +13,10 @@ if files:
     for file in files:
         ext = file.name.split(".")[-1]
         try:
-            df = pd.read_csv(file) if ext == "csv" else pd.read_excel(file, engine="openpyxl")
+            if ext == "csv":
+                df = pd.read_csv(file)
+            elif ext == "xlsx":
+                df = pd.read_excel(file, engine="openpyxl")  # Specify the engine
         except Exception as e:
             st.error(f"Error reading {file.name}: {e}")
             continue  # Skip to the next file
