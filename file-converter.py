@@ -76,11 +76,15 @@ if files:
 
         # Show Chart
         if st.checkbox(f"Show Chart - {file.name}"):
+            # Select numeric columns and clean data
             numeric_df = df.select_dtypes(include="number")
+            numeric_df = numeric_df.apply(pd.to_numeric, errors="coerce")  # Convert to numeric, coercing errors
+            numeric_df = numeric_df.dropna()  # Drop rows with missing values
+
             if not numeric_df.empty:
                 st.bar_chart(numeric_df.iloc[:, :2])  # Plot the first two numeric columns
             else:
-                st.warning("No numeric columns found in the DataFrame.")
+                st.warning("No valid numeric columns found in the DataFrame.")
 
         # Convert File Format
         format_choice = st.radio(f"Convert {file.name} to:", ["csv", "Excel"], key=file.name)
