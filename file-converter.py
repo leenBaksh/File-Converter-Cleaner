@@ -13,7 +13,7 @@ if files:
     for file in files:
         ext = file.name.split(".")[-1]
         try:
-            df = pd.read_csv(file) if ext == "csv" else pd.read_excel(file)
+            df = pd.read_csv(file) if ext == "csv" else pd.read_excel(file, engine="openpyxl")
         except Exception as e:
             st.error(f"Error reading {file.name}: {e}")
             continue  # Skip to the next file
@@ -56,53 +56,51 @@ if files:
                     else:
                         # If the column is non-numeric, fill with the custom value as-is
                         df[col].fillna(custom_value, inplace=True)
-                        
-                        st.success("Missing values filled.")
-                        st.dataframe(df.head())
+            
+            st.success("Missing values filled.")
+            st.dataframe(df.head())
 
-                        # Column Selection
-                        selected_columns = st.multiselect(
-                            f"Select Columns - {file.name}",
-                            df.columns,
-                            default=list(df.columns)
-                        )
-                        
-                        if not selected_columns:
-                            st.warning("Please select at least one column.")
-                            st.stop() 
-                            
-                        else:
-                            df = df[selected_columns]
-                            st.dataframe(df.head())
-                            
-                            # Show Chart
-                            if st.checkbox(f"Show Chart - {file.name}"):
-                                numeric_df = df.select_dtypes(include="number")
-                                if not numeric_df.empty:
-                                    st.bar_chart(numeric_df.iloc[:, :2])
-                                    
-                                else:
-                                    st.warning("No numeric columns found in the DataFrame.")
-                                    
-                                    # Convert File Format
-                                    format_choice = st.radio(f"Convert {file.name} to:", ["csv", "Excel"], key=file.name)
-                                    output = io.BytesIO()
-                                    
-                                    if format_choice == "csv":
-                                        df.to_csv(output, index=False)
-                                        mime = "text/csv"
-                                        new_name = f"{file.name.split('.')[0]}.csv"
-                                    elif format_choice == "Excel":
-                                        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-                                            df.to_excel(writer, index=False)
-                                            mime = "application/vnd.ms-excel"
-                                            new_name = f"{file.name.split('.')[0]}.xlsx"
-                                            
-                                            output.seek(0)
-                                            st.download_button(
-                                                label=f"Download {new_name}",
-                                                data=output,
-                                                file_name=new_name,
-                                                mime=mime
-                                                )
-                                            st.success("Processing Completed!")
+        # Column Selection
+        selected_columns = st.multiselect(
+            f"Select Columns - {file.name}",
+            df.columns,
+            default=list(df.columns)
+        )
+
+        if not selected_columns:
+            st.warning("Please select at least one column.")
+            continue  # Skip to the next file
+        else:
+            df = df[selected_columns]
+            st.dataframe(df.head())
+
+        # Show Chart
+        if st.checkbox(f"Show Chart - {file.name}"):
+            numeric_df = df.select_dtypes(include="number")
+            if not numeric_df.empty:
+                st.bar_chart(numeric_df.iloc[:, :2])  # Plot the first two numeric columns
+            else:
+                st.warning("No numeric columns found in the DataFrame.")
+
+        # Convert File Format
+        format_choice = st.radio(f"Convert {file.name} to:", ["csv", "Excel"], key=file.name)
+        output = io.BytesIO()
+
+        if format_choice == "csv":
+            df.to_csv(output, index=False)
+            mime = "text/csv"
+            new_name = f"{file.name.split('.')[0]}.csv"
+        elif format_choice == "Excel":
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False)
+            mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            new_name = f"{file.name.split('.')[0]}.xlsx"
+
+        output.seek(0)
+        st.download_button(
+            label=f"Download {new_name}",
+            data=output,
+            file_name=new_name,
+            mime=mime
+        )
+        st.success("Processing Completed!")
